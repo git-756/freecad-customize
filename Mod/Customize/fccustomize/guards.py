@@ -11,6 +11,8 @@ _TEXT_INPUT_TYPES = (
     QtWidgets.QDoubleSpinBox,
 )
 
+_SKETCH_TYPE = "Sketcher::SketchObject"
+
 
 def is_text_input_focused():
     """True if keyboard focus is in a text/number input widget."""
@@ -18,12 +20,15 @@ def is_text_input_focused():
     return isinstance(focused, _TEXT_INPUT_TYPES)
 
 
+def is_sketch_view_provider(vobj):
+    """True if the given view provider belongs to a sketch."""
+    obj = getattr(vobj, "Object", None)
+    return bool(obj and obj.isDerivedFrom(_SKETCH_TYPE))
+
+
 def is_sketching():
     """True if a sketch is currently being edited."""
     doc = FreeCADGui.ActiveDocument
     if not doc:
         return False
-    edit_obj = doc.getInEdit()
-    return bool(
-        edit_obj and edit_obj.Object.isDerivedFrom("Sketcher::SketchObject")
-    )
+    return is_sketch_view_provider(doc.getInEdit())

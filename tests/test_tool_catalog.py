@@ -1,39 +1,51 @@
-from fccustomize.tool_catalog import tools_for_context
+from fccustomize.tool_catalog import (
+    SKETCH_TOOLS,
+    sketch_key_bindings,
+    tools_for_context,
+)
 
 
-def test_sketching_returns_sketcher_tools():
-    tools = tools_for_context(True)
-    assert [cmd for _, cmd in tools] == [
+def test_sketching_returns_sketcher_tools_with_key_labels():
+    tools = dict((cmd, label) for label, cmd in tools_for_context(True))
+    assert list(tools) == [
         "Sketcher_CreateLine",
         "Sketcher_CreateRectangle",
         "Sketcher_CreateCircle",
         "Sketcher_CreateArc",
+        "Sketcher_CreatePoint",
         "Sketcher_Trimming",
         "Sketcher_Dimension",
+        "Sketcher_ConstrainSymmetric",
     ]
+    assert tools["Sketcher_CreateLine"] == "直線 (L)"
+    assert tools["Sketcher_CreatePoint"] == "点 (Shift+S)"
+    # キーなしのツールはラベルにキー表記を付けない
+    assert tools["Sketcher_Trimming"] == "トリム"
 
 
-def test_not_sketching_returns_part_design_tools():
-    tools = tools_for_context(False)
-    assert [cmd for _, cmd in tools] == [
-        "PartDesign_NewSketch",
-        "PartDesign_Pad",
-        "PartDesign_Pocket",
-        "PartDesign_Fillet",
-        "PartDesign_Chamfer",
-        "PartDesign_Hole",
-    ]
+def test_not_sketching_returns_no_tools():
+    assert tools_for_context(False) == []
 
 
-def test_entries_are_well_formed():
-    for is_sketching in (True, False):
-        tools = tools_for_context(is_sketching)
-        assert tools
-        for label, cmd in tools:
-            assert label
-            assert cmd
-        commands = [cmd for _, cmd in tools]
-        assert len(commands) == len(set(commands))
+def test_key_bindings():
+    assert dict(sketch_key_bindings()) == {
+        "L": "Sketcher_CreateLine",
+        "R": "Sketcher_CreateRectangle",
+        "C": "Sketcher_CreateCircle",
+        "A": "Sketcher_CreateArc",
+        "Shift+S": "Sketcher_CreatePoint",
+        "D": "Sketcher_Dimension",
+        "Shift+M": "Sketcher_ConstrainSymmetric",
+    }
+
+
+def test_keys_and_commands_are_unique_and_not_the_launcher_key():
+    bindings = sketch_key_bindings()
+    keys = [k for k, _ in bindings]
+    commands = [cmd for _, cmd, _ in SKETCH_TOOLS]
+    assert len(keys) == len(set(keys))
+    assert len(commands) == len(set(commands))
+    assert "S" not in keys  # S はランチャー用
 
 
 def test_returned_list_is_a_copy():

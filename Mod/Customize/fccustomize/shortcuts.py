@@ -1,18 +1,34 @@
-"""N/S key registration and the S-key handler."""
+"""Key registration.
+
+N is always active. The S launcher and the sketch tool keys are only enabled
+while a sketch is being edited (toggled by a document observer).
+"""
 
 import FreeCAD
 import FreeCADGui
 from PySide import QtCore, QtGui
 
 from . import guards
-from .constants import LOG_TAG, SHORTCUT_N_NAME, SHORTCUT_S_NAME
+from .constants import (
+    LOG_TAG,
+    SHORTCUT_N_NAME,
+    SHORTCUT_S_NAME,
+    SKETCH_KEY_NAME_PREFIX,
+    SKETCH_LAUNCHER_KEY,
+)
 from .shortcut_bar import ShortcutBar
+from .sketch_actions import run_sketch_command
+from .tool_catalog import sketch_key_bindings
 from .view_actions import do_normal_to
+
+# Kept at module level so they are not garbage collected.
+_sketch_shortcuts = []
+_observer = None
 
 
 def do_shortcut_bar():
     try:
-        if guards.is_text_input_focused():
+        if guards.is_text_input_focused() or not guards.is_sketching():
             return
 
         mw = FreeCADGui.getMainWindow()
@@ -27,7 +43,41 @@ def do_shortcut_bar():
         FreeCAD.Console.PrintError("%s S key error: %s\n" % (LOG_TAG, e))
 
 
+def _make_shortcut(mw, name, key, callback, enabled=True):
+    old = mw.findChild(QtGui.QShortcut, name)
+    if old:
+        old.setEnabled(False)
+        old.deleteLater()
+    sc = QtGui.QShortcut(QtGui.QKeySequence(key), mw)
+    sc.setObjectName(name)
+    sc.setContext(QtCore.Qt.ApplicationShortcut)
+    sc.activated.connect(callback)
+    sc.setEnabled(enabled)
+    return sc
+
+
+def _set_sketch_keys_enabled(enabled):
+    for sc in _sketch_shortcuts:
+        sc.setEnabled(enabled)
+
+
+class _SketchEditObserver:
+    """Enable the sketch keys on entering a sketch, disable on leaving."""
+
+    def slotInEdit(self, vobj):
+        try:
+            _set_sketch_keys_enabled(guards.is_sketch_view_provider(vobj))
+        except Exception as e:
+            FreeCAD.Console.PrintError(
+                "%s slotInEdit error: %s\n" % (LOG_TAG, e)
+            )
+
+    def slotResetEdit(self, vobj):
+        _set_sketch_keys_enabled(False)
+
+
 def register_shortcuts(retry=0):
+    global _observer
     try:
         mw = FreeCADGui.getMainWindow()
         if not mw:
@@ -41,28 +91,35 @@ def register_shortcuts(retry=0):
                 )
             return
 
-        # Nキーの登録
-        old_n = mw.findChild(QtGui.QShortcut, SHORTCUT_N_NAME)
-        if old_n:
-            old_n.setEnabled(False)
-            old_n.deleteLater()
-        sc_n = QtGui.QShortcut(QtGui.QKeySequence("N"), mw)
-        sc_n.setObjectName(SHORTCUT_N_NAME)
-        sc_n.setContext(QtCore.Qt.ApplicationShortcut)
-        sc_n.activated.connect(do_normal_to)
+        # Nキー（常時有効）
+        _make_shortcut(mw, SHORTCUT_N_NAME, "N", do_normal_to)
 
-        # Sキーの登録
-        old_s = mw.findChild(QtGui.QShortcut, SHORTCUT_S_NAME)
-        if old_s:
-            old_s.setEnabled(False)
-            old_s.deleteLater()
-        sc_s = QtGui.QShortcut(QtGui.QKeySequence("S"), mw)
-        sc_s.setObjectName(SHORTCUT_S_NAME)
-        sc_s.setContext(QtCore.Qt.ApplicationShortcut)
-        sc_s.activated.connect(do_shortcut_bar)
+        # スケッチ中のみ有効なキー: ランチャー(S) と各ツール
+        _sketch_shortcuts.clear()
+        _sketch_shortcuts.append(
+            _make_shortcut(
+                mw, SHORTCUT_S_NAME, SKETCH_LAUNCHER_KEY, do_shortcut_bar,
+                enabled=False,
+            )
+        )
+        for key, cmd_name in sketch_key_bindings():
+            _sketch_shortcuts.append(
+                _make_shortcut(
+                    mw,
+                    SKETCH_KEY_NAME_PREFIX + cmd_name,
+                    key,
+                    lambda c=cmd_name: run_sketch_command(c),
+                    enabled=False,
+                )
+            )
+
+        if _observer is None:
+            _observer = _SketchEditObserver()
+            FreeCADGui.addDocumentObserver(_observer)
+        _set_sketch_keys_enabled(guards.is_sketching())
 
         FreeCAD.Console.PrintMessage(
-            ">> %s 初期化完了: Navigation / Nキー(正対) / Sキー(ツールバー) が有効化されました。\n"
+            ">> %s 初期化完了: Navigation / Nキー(正対) / スケッチ中のキー(S/L/R/C/A/D/Shift+S/Shift+M) が有効化されました。\n"
             % LOG_TAG
         )
     except Exception as e:

@@ -1,25 +1,33 @@
-"""Tool lists for the S-key shortcut bar (pure; no FreeCAD/Qt dependency)."""
+"""Sketch tools and their key bindings (pure; no FreeCAD/Qt dependency)."""
 
-# [(ラベル, FreeCAD内部コマンド名), ...]
+# (名前, FreeCAD内部コマンド名, キー or None)
+# キーはスケッチ編集中だけ有効。None はランチャー（Sキー）からのみ選べる。
 SKETCH_TOOLS = (
-    ("直線 (L)", "Sketcher_CreateLine"),
-    ("矩形 (R)", "Sketcher_CreateRectangle"),
-    ("円 (C)", "Sketcher_CreateCircle"),
-    ("円弧 (A)", "Sketcher_CreateArc"),
-    ("トリム (M)", "Sketcher_Trimming"),
-    ("寸法 (D)", "Sketcher_Dimension"),
+    ("直線", "Sketcher_CreateLine", "L"),
+    ("矩形", "Sketcher_CreateRectangle", "R"),
+    ("円", "Sketcher_CreateCircle", "C"),
+    ("円弧", "Sketcher_CreateArc", "A"),
+    ("点", "Sketcher_CreatePoint", "Shift+S"),
+    ("トリム", "Sketcher_Trimming", None),
+    ("寸法", "Sketcher_Dimension", "D"),
+    ("中点", "Sketcher_ConstrainSymmetric", "Shift+M"),
 )
 
-PART_TOOLS = (
-    ("スケッチ", "PartDesign_NewSketch"),
-    ("パッド (Extrude)", "PartDesign_Pad"),
-    ("ポケット (Cut)", "PartDesign_Pocket"),
-    ("フィレット", "PartDesign_Fillet"),
-    ("面取り", "PartDesign_Chamfer"),
-    ("穴あけ (Hole)", "PartDesign_Hole"),
-)
+
+def _label(name: str, key: str | None) -> str:
+    return f"{name} ({key})" if key else name
 
 
 def tools_for_context(is_sketching: bool) -> list[tuple[str, str]]:
-    """Return [(label, command_name), ...] for the current editing context."""
-    return list(SKETCH_TOOLS if is_sketching else PART_TOOLS)
+    """Return [(label, command_name), ...] for the launcher.
+
+    Tools are only offered while a sketch is being edited.
+    """
+    if not is_sketching:
+        return []
+    return [(_label(name, key), cmd) for name, cmd, key in SKETCH_TOOLS]
+
+
+def sketch_key_bindings() -> list[tuple[str, str]]:
+    """Return [(key_sequence, command_name), ...] active while sketching."""
+    return [(key, cmd) for _, cmd, key in SKETCH_TOOLS if key]
