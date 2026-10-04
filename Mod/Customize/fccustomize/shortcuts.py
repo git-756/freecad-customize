@@ -1,39 +1,28 @@
 """Key registration.
 
-N is always active. The S launcher and the sketch tool keys are only enabled
-while a sketch is being edited (toggled by a document observer).
+N is a normal application shortcut (always active). The S launcher and the
+sketch tool keys are handled by an event filter that is only effective while
+a sketch is being edited (see key_filter.py).
 """
 
 import FreeCAD
 import FreeCADGui
-from PySide import QtCore, QtGui
+from PySide import QtCore, QtGui, QtWidgets
 
-from . import guards, log
-from .constants import (
-    LOG_TAG,
-    SHORTCUT_N_NAME,
-    SHORTCUT_S_NAME,
-    SKETCH_KEY_NAME_PREFIX,
-    SKETCH_LAUNCHER_KEY,
-)
+from . import log
+from .constants import LOG_TAG, SHORTCUT_N_NAME, SKETCH_LAUNCHER_KEY
+from .key_filter import SketchKeyFilter
 from .shortcut_bar import ShortcutBar
 from .sketch_actions import run_sketch_command
 from .tool_catalog import sketch_key_bindings
 from .view_actions import do_normal_to
 
-# Kept at module level so they are not garbage collected.
-_sketch_shortcuts = []
-_observer = None
+# Kept at module level so it is not garbage collected.
+_key_filter = None
 
 
 def do_shortcut_bar():
     try:
-        focus, sketching = guards.describe_focus(), guards.is_sketching()
-        log.debug("key S focus=%s sketching=%s" % (focus, sketching))
-        if guards.is_text_input_focused() or not sketching:
-            log.debug("  ignored")
-            return
-
         mw = FreeCADGui.getMainWindow()
         bar = ShortcutBar(mw)
 
@@ -46,7 +35,7 @@ def do_shortcut_bar():
         FreeCAD.Console.PrintError("%s S key error: %s\n" % (LOG_TAG, e))
 
 
-def _make_shortcut(mw, name, key, callback, enabled=True):
+def _make_shortcut(mw, name, key, callback):
     old = mw.findChild(QtGui.QShortcut, name)
     if old:
         old.setEnabled(False)
@@ -56,33 +45,23 @@ def _make_shortcut(mw, name, key, callback, enabled=True):
     sc.setContext(QtCore.Qt.ApplicationShortcut)
     sc.activated.connect(callback)
     sc.activatedAmbiguously.connect(lambda: log.debug("AMBIGUOUS key %s" % key))
-    sc.setEnabled(enabled)
     return sc
 
 
-def _set_sketch_keys_enabled(enabled):
-    log.debug("sketch keys enabled=%s" % enabled)
-    for sc in _sketch_shortcuts:
-        sc.setEnabled(enabled)
+def _install_sketch_keys():
+    global _key_filter
+    app = QtWidgets.QApplication.instance()
+    if _key_filter is not None:
+        app.removeEventFilter(_key_filter)
 
-
-class _SketchEditObserver:
-    """Enable the sketch keys on entering a sketch, disable on leaving."""
-
-    def slotInEdit(self, vobj):
-        try:
-            _set_sketch_keys_enabled(guards.is_sketch_view_provider(vobj))
-        except Exception as e:
-            FreeCAD.Console.PrintError(
-                "%s slotInEdit error: %s\n" % (LOG_TAG, e)
-            )
-
-    def slotResetEdit(self, vobj):
-        _set_sketch_keys_enabled(False)
+    handlers = {SKETCH_LAUNCHER_KEY: do_shortcut_bar}
+    for key, cmd_name in sketch_key_bindings():
+        handlers[key] = lambda c=cmd_name: run_sketch_command(c)
+    _key_filter = SketchKeyFilter(handlers)
+    app.installEventFilter(_key_filter)
 
 
 def register_shortcuts(retry=0):
-    global _observer
     try:
         mw = FreeCADGui.getMainWindow()
         if not mw:
@@ -100,28 +79,7 @@ def register_shortcuts(retry=0):
         _make_shortcut(mw, SHORTCUT_N_NAME, "N", do_normal_to)
 
         # スケッチ中のみ有効なキー: ランチャー(S) と各ツール
-        _sketch_shortcuts.clear()
-        _sketch_shortcuts.append(
-            _make_shortcut(
-                mw, SHORTCUT_S_NAME, SKETCH_LAUNCHER_KEY, do_shortcut_bar,
-                enabled=False,
-            )
-        )
-        for key, cmd_name in sketch_key_bindings():
-            _sketch_shortcuts.append(
-                _make_shortcut(
-                    mw,
-                    SKETCH_KEY_NAME_PREFIX + cmd_name,
-                    key,
-                    lambda c=cmd_name: run_sketch_command(c),
-                    enabled=False,
-                )
-            )
-
-        if _observer is None:
-            _observer = _SketchEditObserver()
-            FreeCADGui.addDocumentObserver(_observer)
-        _set_sketch_keys_enabled(guards.is_sketching())
+        _install_sketch_keys()
 
         FreeCAD.Console.PrintMessage(
             ">> %s 初期化完了: Navigation / Nキー(正対) / スケッチ中のキー(S/L/R/C/A/D/Shift+S/Shift+M) が有効化されました。\n"
