@@ -23,6 +23,7 @@ UV_LINK_MODE=copy uv run ruff check
 - 動作を変える変更は、事前にユーザーに相談する。
 - `InitGui.py` は FreeCAD が exec で実行するため `__file__` に依存しない。`sys.path` を書き換えない。
 - `fccustomize/__init__.py` と `tool_catalog.py` は FreeCAD/Qt を import しない（テストのため）。
+- S キー（ランチャー）とスケッチ用キーは、スケッチ編集中だけ有効（`shortcuts.py` の DocumentObserver で切替）。キーとコマンドの対応は `tool_catalog.py` の `SKETCH_TOOLS` が唯一の定義元。
 - UI部分（ショートカット、ナビゲーション、バー）は自動テストできない。FreeCAD を完全に再起動して手動確認する。
 - `~/Library` 以下（FreeCAD のユーザーデータ）には書き込まない。リンクの作成/解除はユーザーが行う。
 - 対応環境：macOS で確認済み。Windows は未検証（README にも明記。検証できるまで外さない）。
