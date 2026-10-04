@@ -10,7 +10,7 @@ from PySide import QtCore, QtGui, QtWidgets
 
 from . import guards, log
 
-_PORTABLE = QtGui.QKeySequence.PortableText
+_PORTABLE = QtGui.QKeySequence.SequenceFormat.PortableText
 
 
 def normalize(key):
