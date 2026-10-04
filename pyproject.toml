@@ -1,5 +1,14 @@
 [project]
 name = "freecad-customize"
 version = "0.1.0"
-requires-python = ">=3.11.14"
+requires-python = ">=3.11"
 dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.10",
+]
+
+[tool.ruff]
+target-version = "py311"
