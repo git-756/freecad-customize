@@ -50,7 +50,7 @@ App.getUserAppDataDir()
 リポジトリを clone し、`Mod/Customize` を `<Modフォルダ>` にリンクします。更新は `git pull` と FreeCAD の再起動だけです。
 
 ```bash
-git clone <https://github.com/git-756/freecad-customize.git>
+git clone https://github.com/git-756/freecad-customize.git
 cd freecad-customize
 ```
 
