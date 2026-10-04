@@ -8,7 +8,7 @@ FreeCAD 1.1 用のUIカスタマイズ（Onshape風の操作性）を提供す�
   - `Init.py`（空）/ `InitGui.py`（入口のみ。`fccustomize.bootstrap.start()` を呼ぶ）
   - `fccustomize/` — 実装。`tool_catalog.py` だけが FreeCAD/Qt 非依存の純粋関数
 - `tests/` — pytest（FreeCAD/Qt に依存しない純粋関数のみ対象）
-- `scripts/link_mod.sh` — Mod のリンク作成/解除/状態確認
+- `scripts/link_mod.sh`（macOS/Linux）/ `scripts/link_mod.ps1`（Windows、未検証）— Mod のリンク作成/解除/状態確認
 - `docs/` — ドキュメント
 
 ## 開発コマンド
@@ -25,4 +25,5 @@ UV_LINK_MODE=copy uv run ruff check
 - `fccustomize/__init__.py` と `tool_catalog.py` は FreeCAD/Qt を import しない（テストのため）。
 - UI部分（ショートカット、ナビゲーション、バー）は自動テストできない。FreeCAD を完全に再起動して手動確認する。
 - `~/Library` 以下（FreeCAD のユーザーデータ）には書き込まない。リンクの作成/解除はユーザーが行う。
+- 対応環境：macOS で確認済み。Windows は未検証（README にも明記。検証できるまで外さない）。
 - ログのタグは `[Customize]`（`constants.py`）。
