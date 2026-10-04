@@ -8,7 +8,7 @@ import FreeCAD
 import FreeCADGui
 from PySide import QtCore, QtGui
 
-from . import guards
+from . import guards, log
 from .constants import (
     LOG_TAG,
     SHORTCUT_N_NAME,
@@ -28,7 +28,10 @@ _observer = None
 
 def do_shortcut_bar():
     try:
-        if guards.is_text_input_focused() or not guards.is_sketching():
+        focus, sketching = guards.describe_focus(), guards.is_sketching()
+        log.debug("key S focus=%s sketching=%s" % (focus, sketching))
+        if guards.is_text_input_focused() or not sketching:
+            log.debug("  ignored")
             return
 
         mw = FreeCADGui.getMainWindow()
@@ -52,11 +55,13 @@ def _make_shortcut(mw, name, key, callback, enabled=True):
     sc.setObjectName(name)
     sc.setContext(QtCore.Qt.ApplicationShortcut)
     sc.activated.connect(callback)
+    sc.activatedAmbiguously.connect(lambda: log.debug("AMBIGUOUS key %s" % key))
     sc.setEnabled(enabled)
     return sc
 
 
 def _set_sketch_keys_enabled(enabled):
+    log.debug("sketch keys enabled=%s" % enabled)
     for sc in _sketch_shortcuts:
         sc.setEnabled(enabled)
 

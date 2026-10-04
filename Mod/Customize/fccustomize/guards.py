@@ -20,6 +20,12 @@ def is_text_input_focused():
     return isinstance(focused, _TEXT_INPUT_TYPES)
 
 
+def describe_focus():
+    """Class name of the widget that has keyboard focus (for diagnostics)."""
+    focused = QtWidgets.QApplication.focusWidget()
+    return type(focused).__name__ if focused else "None"
+
+
 def is_sketch_view_provider(vobj):
     """True if the given view provider belongs to a sketch."""
     obj = getattr(vobj, "Object", None)
