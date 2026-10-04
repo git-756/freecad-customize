@@ -1,11 +1,10 @@
 """Popup tool bar shown by the S key."""
 
-import FreeCAD
 import FreeCADGui
 from PySide import QtCore, QtGui, QtWidgets
 
 from . import guards
-from .constants import LOG_TAG
+from .sketch_actions import resolve_command, run_sketch_command
 from .tool_catalog import tools_for_context
 
 
@@ -53,7 +52,7 @@ class ShortcutBar(QtWidgets.QWidget):
             btn = QtWidgets.QToolButton(self)
             btn.setText(label)
             # FreeCAD標準コマンドのアイコンがあれば取得して設定
-            fc_cmd = FreeCADGui.Command.get(cmd_name)
+            fc_cmd = FreeCADGui.Command.get(resolve_command(cmd_name))
             if fc_cmd and hasattr(fc_cmd, "getIcon"):
                 icon_path = fc_cmd.getIcon()
                 if icon_path:
@@ -61,15 +60,10 @@ class ShortcutBar(QtWidgets.QWidget):
                     btn.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
 
             btn.clicked.connect(
-                lambda _, c=cmd_name: self._run_command_and_close(c)
+                lambda _, c=cmd_name, t=label: self._run_command_and_close(c, t)
             )
             self._grid.addWidget(btn, i // cols, i % cols)
 
-    def _run_command_and_close(self, cmd_name):
+    def _run_command_and_close(self, cmd_name, label):
         self.close()
-        try:
-            FreeCADGui.runCommand(cmd_name)
-        except Exception as e:
-            FreeCAD.Console.PrintError(
-                f"{LOG_TAG} Command failed: {cmd_name} ({e})\n"
-            )
+        run_sketch_command(cmd_name, label)

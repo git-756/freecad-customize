@@ -6,7 +6,7 @@ and fires neither. The filter accepts ShortcutOverride so that Qt skips its
 shortcut matching, then handles the KeyPress itself.
 """
 
-from PySide import QtCore, QtGui, QtWidgets
+from PySide import QtCore, QtGui
 
 from . import guards, log
 
@@ -26,11 +26,7 @@ class SketchKeyFilter(QtCore.QObject):
         self._handlers = {normalize(k): h for k, h in handlers.items()}
 
     def _active(self):
-        return (
-            guards.is_sketching()
-            and not guards.is_text_input_focused()
-            and QtWidgets.QApplication.activePopupWidget() is None
-        )
+        return guards.is_sketching() and not guards.is_text_input_focused()
 
     def eventFilter(self, obj, event):
         etype = event.type()

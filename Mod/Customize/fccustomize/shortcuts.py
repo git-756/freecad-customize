@@ -13,7 +13,7 @@ from . import log
 from .constants import LOG_TAG, SHORTCUT_N_NAME, SKETCH_LAUNCHER_KEY
 from .key_filter import SketchKeyFilter
 from .shortcut_bar import ShortcutBar
-from .sketch_actions import run_sketch_command
+from .sketch_actions import close_popup, run_sketch_command
 from .tool_catalog import sketch_key_bindings
 from .view_actions import do_normal_to
 
@@ -23,6 +23,8 @@ _key_filter = None
 
 def do_shortcut_bar():
     try:
+        if close_popup():  # S を再度押すとランチャーを閉じる
+            return
         mw = FreeCADGui.getMainWindow()
         bar = ShortcutBar(mw)
 
@@ -55,8 +57,8 @@ def _install_sketch_keys():
         app.removeEventFilter(_key_filter)
 
     handlers = {SKETCH_LAUNCHER_KEY: do_shortcut_bar}
-    for key, cmd_name in sketch_key_bindings():
-        handlers[key] = lambda c=cmd_name: run_sketch_command(c)
+    for key, cmd_name, label in sketch_key_bindings():
+        handlers[key] = lambda c=cmd_name, t=label: run_sketch_command(c, t)
     _key_filter = SketchKeyFilter(handlers)
     app.installEventFilter(_key_filter)
 
@@ -82,7 +84,7 @@ def register_shortcuts(retry=0):
         _install_sketch_keys()
 
         FreeCAD.Console.PrintMessage(
-            ">> %s 初期化完了: Navigation / Nキー(正対) / スケッチ中のキー(S/L/R/C/A/D/Shift+S/Shift+M) が有効化されました。\n"
+            ">> %s 初期化完了: Navigation / Nキー(正対) / スケッチ中のキー(S/L/R/C/A/D/I/Shift+S/Shift+M) が有効化されました。\n"
             % LOG_TAG
         )
     except Exception as e:
