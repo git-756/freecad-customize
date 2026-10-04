@@ -9,7 +9,6 @@ import FreeCAD
 import FreeCADGui
 from PySide import QtCore, QtGui, QtWidgets
 
-from . import log
 from .constants import LOG_TAG, SHORTCUT_N_NAME, SKETCH_LAUNCHER_KEY
 from .key_filter import SketchKeyFilter
 from .shortcut_bar import ShortcutBar
@@ -46,7 +45,6 @@ def _make_shortcut(mw, name, key, callback):
     sc.setObjectName(name)
     sc.setContext(QtCore.Qt.ApplicationShortcut)
     sc.activated.connect(callback)
-    sc.activatedAmbiguously.connect(lambda: log.debug("AMBIGUOUS key %s" % key))
     return sc
 
 

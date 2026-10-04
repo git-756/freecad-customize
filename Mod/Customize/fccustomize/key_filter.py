@@ -8,7 +8,7 @@ shortcut matching, then handles the KeyPress itself.
 
 from PySide import QtCore, QtGui
 
-from . import guards, log
+from . import guards
 
 _PORTABLE = QtGui.QKeySequence.SequenceFormat.PortableText
 
@@ -41,6 +41,5 @@ class SketchKeyFilter(QtCore.QObject):
             event.accept()
             return True
         if not event.isAutoRepeat():
-            log.debug("key %s handled (focus=%s)" % (key, guards.describe_focus()))
             handler()
         return True

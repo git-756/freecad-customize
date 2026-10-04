@@ -4,7 +4,6 @@ import FreeCAD
 import FreeCADGui
 from PySide import QtWidgets
 
-from . import log
 from .constants import LOG_TAG
 from .tool_catalog import command_candidates
 
@@ -39,8 +38,6 @@ def run_sketch_command(cmd_name, label=None):
     try:
         close_popup()
         resolved = resolve_command(cmd_name)
-        if resolved != cmd_name:
-            log.debug("command %s -> %s" % (cmd_name, resolved))
         if label:
             _show_status(label)
         FreeCADGui.runCommand(resolved)
